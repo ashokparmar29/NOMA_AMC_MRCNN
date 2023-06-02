@@ -1,3 +1,5 @@
+# Author: Ashok Parmar
+
 import matplotlib
 
 from matplotlib import pyplot as plt
