@@ -1,6 +1,5 @@
-#for matfile
 import matplotlib
-matplotlib.use("Agg")
+
 from matplotlib import pyplot as plt
 import numpy as np
 from numpy import save, load
@@ -10,14 +9,14 @@ from tensorflow import keras
 from tensorflow.keras.utils import to_categorical
 import os
 import pickle
-from Models import model7
+
 
 import h5py
 
-model_name = 'NOMA_model7_N_200_2'
+
 classes = ['bpsk', 'qpsk', '8psk','16qam']
 print('Loading dataset....')
-with h5py.File("/home/ds20ec010/Research/dataset/dataset_NOMA_N_200_2.mat", 'r') as Xd:
+with h5py.File("/home/dataset/NomaDL_2022_v2.mat", 'r') as Xd:
 	#Xd = f3
 	X = np.array(Xd['data_Y'])
 	lbl = np.array(Xd['true_Mods'])
@@ -27,11 +26,7 @@ c_t = cplx.transpose()
 Xs = np.zeros((c_t.shape[0],2,c_t.shape[1]))
 Xs[:,0,:] = c_t.real
 Xs[:,1,:] = c_t.imag
-'''
-#normalization
-Xs[:,0,:] = Xs[:,0,:]/Xs[:,0,:].max()
-Xs[:,1,:] = Xs[:,1,:]/Xs[:,1,:].max()
-'''
+
 print("preprocessing data")
 np.random.seed(2016)
 n_examples = Xs.shape[0]
@@ -54,38 +49,51 @@ print(X_train.shape, in_shp,X_test.shape)
 nb_epoch = 100    # number of epochs to train on
 
 batchSize = 500  # training batch size
+
+def amc(layer_in):
+	conv1 = Conv2D(16, (1,8), padding='same', activation='relu')(layer_in)
+	#pool1 = MaxPooling2D((1,3))(conv1)
+	conv3 = Conv2D(16, (1,1), padding='same', activation='relu')(layer_in)
+	canc = Concatenate()([conv1, conv3])
+	return canc
+
+
+def model7(in_shape):
+	dr = 0.4 # dropout rate (%)
+ 
+	input1 = tf.keras.Input(shape = in_shape, name = 'in1')
+	h1 = layers.Reshape((2,in_shape[1],1), input_shape=in_shape)(input1)
+	h = layers.Conv2D(64, kernel_size=(2, 8),activation='relu',padding='same')(h1)
+	#h = layers.MaxPooling2D((1,8))(h)
+	h = layers.Conv2D(32, kernel_size=(2, 8), activation='relu',padding='same')(h)
+	h = amc(h)
+	h = layers.AveragePooling2D((1,3))(h)
+	h = layers.Conv2D(16, kernel_size=(1, 3),activation='relu',padding='same')(h)
+	h = amc(h)
+	h = layers.AveragePooling2D((1,8))(h)
+	h = layers.Conv2D(8, kernel_size=(1, 3),activation='relu',padding='same')(h)
+	h = layers.Flatten()(h)
+	h = layers.Dense(128, activation='relu')(h)
+	h = layers.Dense(24, activation='relu')(h)
+	output = layers.Dense(4, activation='softmax')(h)
+	model = tf.keras.Model(input1,output)
+	return model
+
 model = model7(in_shp)
 
 opt = keras.optimizers.Adam(0.001)
 model.compile(optimizer=opt,loss="categorical_crossentropy",metrics=["accuracy"])
 model.summary()  
 import os
-'''
-checkpoint_path = "/home/ds20ec010/Research/trained models_and_callbacks/"+model_name +".ckpt"
-checkpoint_dir = os.path.dirname(checkpoint_path)
 
-callback1 = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,save_weights_only=True,verbose=1, save_best_only=True,monitor = 'val_accuracy')
-#callback2 = tf.keras.callbacks.TensorBoard(log_dir="/home/ds20ec010/Research/trained models_and_callbacks/tf_logs")
-#callback3 = tf.keras.callbacks.ReduceLROnPlateau(monitor="val_accuracy",factor=0.5,patience=15, verbose=1,mode="auto",)
-#clr = CyclicLR(base_lr=0.001, max_lr=0.006,step_size=2000., mode='triangular')
-#callbacks_list = [callback1, callback3]
-radio_train = model.fit(X_train, Y_train, batch_size=batchSize,epochs=nb_epoch,verbose=1,validation_data=(X_test, Y_test),callbacks=callback1)
+
+radio_train = model.fit(X_train, Y_train, batch_size=batchSize,epochs=nb_epoch,verbose=1,validation_data=(X_test, Y_test))
 
 history = radio_train.history
-try:
-    hist_file = open('/home/ds20ec010/Research/Results/historyof'+ model_name +'.pkl', 'wb')
-    pickle.dump(history, hist_file)
-    acc_file.close()
-except:
-    print("Something went wrong")
-'''	
-model.load_weights("/home/ds20ec010/Research/trained models_and_callbacks/NOMA_model7.ckpt")
 
 score = model.evaluate(X_test, Y_test, verbose=0, batch_size=batchSize)
 print(score)
-with open('score_NOMA_IQ_model7_N200_4.txt', 'x') as f:
-    for sc in score:
-        f.write(str(sc))
+
 
 test_Y_hat = model.predict(X_test, batch_size=batchSize)
 plt.rcParams["figure.figsize"] = (10,10)
@@ -95,8 +103,7 @@ confnorm = confusion_matrix(testy, predicted_classes1)
 
 ConfusionMatrixDisplay.from_predictions(y_true=testy,y_pred=predicted_classes1,xticks_rotation=45, display_labels =classes, normalize = 'true',cmap='Blues', values_format =".2f")
 
-#plt.title('Confusion Matrix NOMA')
-plt.savefig('/home/ds20ec010/Research/Results/matrixforallsnr' + model_name +'.eps', format = 'eps')
+
 test_snrs = np.array(list(map(lambda x: snrs[x], test_idx)))
 snr_list= np.unique(test_snrs)
 
@@ -124,8 +131,7 @@ def snr_based_performance(snr, test_SNRs, test_idx, X_test1, Y_test, model,model
 	cm = ConfusionMatrixDisplay.from_predictions(test_class,predicted_classes2,xticks_rotation=45,
 	                                            display_labels =classes, normalize = 'true',cmap='Blues',
 	                                            values_format =".2f")
-	#plt.title("ConvNet Confusion Matrix (SNR=%d)"%(snr))
-	plt.savefig('matrixforsnr'+model_name +str(snr)+'.eps', format = 'eps')
+
 	plt.close()
 	cor = np.sum(np.diag(conf))
 	ncor = np.sum(conf) - cor
@@ -139,7 +145,7 @@ for snr in snr_list:
 
 
 try:
-    acc_file = open('/home/ds20ec010/Research/Results/accof'+model_name+'.pkl', 'wb')
+    acc_file = open('/home/Results/acc.pkl', 'wb')
     pickle.dump(acc, acc_file)
     acc_file.close()
 except:
@@ -149,5 +155,5 @@ except:
 plt.plot(snr_list, list(map(lambda x: acc[x], snr_list)))
 plt.xlabel("Signal to Noise Ratio")
 plt.ylabel("Classification Accuracy")
-#plt.title("CNN2 Classification Accuracy on NOMADL_2022 dataset")    
+    
 
