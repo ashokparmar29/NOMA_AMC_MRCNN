@@ -4,4 +4,3 @@ This repository contains supplementary material for the paper "**Modulation Clas
 
 - The MATLAB file contains the code for dataset generation. By changing the values of N and power ratio, all the dataset mentioned in the paper can be generated.
 
-- The python file contains the model with complete training script.

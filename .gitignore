@@ -2,4 +2,5 @@
 *.fig
 *.mat
 *.jpg
+*.py
 !NOMA_dataset_gen_Noise.m

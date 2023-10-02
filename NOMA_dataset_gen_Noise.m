@@ -53,7 +53,7 @@ for snr_db = -10:2:20
         
         xr = randn(1);
         yi = randn(1);
-        h =sqrt(vriance*(xr^2+yi^2)); %channel rayleigh, see book 'simulation of dig com using matlab
+        h =sqrt(vriance*(xr^2+yi^2)); %channel rayleigh,
         all_h(iter) = h;    
         i = randi(4);
         true_lbls(iter) = i-1; 
@@ -86,12 +86,5 @@ for snr_db = -10:2:20
 end
 close(w);
 save dataset_NOMA_N_800_1_2.mat data_Y true_Mods snrs;
-
-% step = 0.1;
-% range = 0:step:3;
-% h = hist(all_h, range); 
-% pdf = h/(step*sum(h));
-% plot(range,pdf)
-% mean(all_snrs)
 
 
