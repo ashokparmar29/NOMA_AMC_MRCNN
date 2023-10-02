@@ -4,4 +4,4 @@
 *.jpg
 *.py
 !data_loaders.py
-!NOMA_dataset_gen_Noise.m
+!NOMA_AMC_dataset_generation.m
